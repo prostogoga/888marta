@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Doodle Jump - 10000 Challenge</title>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Press Start 2P', cursive;
+    }
+
+    .game-container {
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      background: linear-gradient(180deg, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%);
+      cursor: none;
+    }
+
+    .score {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      text-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+      font-size: 16px;
+      z-index: 10;
+      background: rgba(0,0,0,0.5);
+      padding: 10px 20px;
+      border-radius: 30px;
+      backdrop-filter: blur(5px);
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .menu {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: white;
+      text-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+      display: none;
+      z-index: 20;
+      background: rgba(0,0,0,0.9);
+      padding: 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      border: 4px solid gold;
+      min-width: 300px;
+      box-shadow: 0 0 50px rgba(255,215,0,0.3);
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 30px rgba(255,215,0,0.3); }
+      50% { box-shadow: 0 0 60px rgba(255,215,0,0.6); }
+    }
+
+    .menu h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: gold;
+      text-transform: uppercase;
+    }
+
+    .menu p {
+      font-size: 16px;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    .menu-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .menu-btn {
+      background: linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%);
+      border: none;
+      color: white;
+      padding: 15px 25px;
+      font-size: 14px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-family: 'Press Start 2P', cursive;
+      box-shadow: 0 5px 20px rgba(255,105,135,0.5);
+      transition: all 0.3s;
+      min-width: 140px;
+    }
+
+    .menu-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 25px rgba(255,105,135,0.8);
+    }
+
+    .menu-btn.secondary {
+      background: linear-gradient(45deg, #4A90E2 30%, #63B8FF 90%);
+      box-shadow: 0 5px 20px rgba(74,144,226,0.5);
+    }
+
+    .menu-btn.secondary:hover {
+      box-shadow: 0 8px 25px rgba(74,144,226,0.8);
+    }
+
+    .victory-message {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: gold;
+      font-size: 24px;
+      text-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+      z-index: 15;
+      background: rgba(0,0,0,0.7);
+      padding: 20px 40px;
+      border-radius: 50px;
+      border: 3px solid gold;
+      white-space: nowrap;
+      animation: bounce 1s ease infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-20px); }
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      color: white;
+      font-size: 10px;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 10px;
+      backdrop-filter: blur(5px);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Скрытые аудио элементы для фоновой музыки -->
+<audio id="musicGame" loop preload="auto" style="display: none;">
+  <source src="2.mp3" type="audio/mpeg">
+  Ваш браузер не поддерживает аудио
+</audio>
+
+<audio id="musicPrize" loop preload="auto" style="display: none;">
+  <source src="1.mp3" type="audio/mpeg">
+  Ваш браузер не поддерживает аудио
+</audio>
+
+<div class="game-container">
+  <div class="score">🎯 SCORE: <span id="scoreValue">0</span> / 2000</div>
+  <div class="menu" id="victoryMenu">
+    <h2>🏆 VICTORY!</h2>
+    <p>YOU REACHED 10000 POINTS!<br>FINAL SCORE: <span id="finalScore">0</span></p>
+    <div class="menu-buttons">
+      <button class="menu-btn secondary" onclick="showFinalMessage()">🎁 ПОЛУЧИТЬ ПРИЗ</button>
+      <button class="menu-btn" onclick="restartGame()">PLAY AGAIN 🔄</button>
+    </div>
+  </div>
+  <div class="menu" id="gameOverMenu">
+    <h2>💀 GAME OVER</h2>
+    <p>FINAL SCORE: <span id="gameOverScore">0</span></p>
+    <div class="menu-buttons">
+      <button class="menu-btn" onclick="restartGame()">PLAY AGAIN 🔄</button>
+    </div>
+  </div>
+  <div class="victory-message" id="victoryMessage" style="display: none;">
+    🎉 10000 POINTS! VICTORY! 🎉
+  </div>
+  <div class="controls">
+    ← → MOVE
+  </div>
+  <canvas width="375" height="667" id="game"></canvas>
+</div>
+
+<!-- ФИНАЛЬНЫЙ ЭКРАН: ПРИЗ (скрыт по умолчанию) -->
+<div id="prizeScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 240, 245, 0.98); z-index: 1000; justify-content: center; align-items: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <div style="background: white; max-width: 400px; padding: 30px; border-radius: 25px; box-shadow: 0 20px 40px rgba(255,105,180,0.3); text-align: center; margin: 20px;">
+    <h1 style="color: #ff69b4; font-size: 1.8rem; margin-bottom: 20px;">Для тебя... 🌷</h1>
+    <p style="color: #5d4037; font-size: 1rem; line-height: 1.6; text-align: left; white-space: pre-line; background: #fff0f5; padding: 20px; border-radius: 15px; border: 2px dashed #ffb6c1;">
+      Ты мое солнышко я тебя очень люблю, то мой скромненький подарок к 8 марту 
+      
+      как и обещал я не потратил денюшек но и сделал подарок 
+      
+      я тебя очень люблю и хочу любить всю жизнь, чмок
+    </p>
+    <h1 style="font-size: 3rem; margin: 20px 0 0; color: #ff1493;">💋</h1>
+    
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const context = canvas.getContext('2d');
+const scoreElement = document.getElementById('scoreValue');
+const victoryMenu = document.getElementById('victoryMenu');
+const gameOverMenu = document.getElementById('gameOverMenu');
+const victoryMessage = document.getElementById('victoryMessage');
+const finalScoreElement = document.getElementById('finalScore');
+const gameOverScoreElement = document.getElementById('gameOverScore');
+const prizeScreen = document.getElementById('prizeScreen');
+
+// --- УПРАВЛЕНИЕ МУЗЫКОЙ ---
+const musicGame = document.getElementById('musicGame'); // 2.mp3 для игры
+const musicPrize = document.getElementById('musicPrize'); // 1.mp3 для приза
+let currentMusic = musicGame; // текущая играющая музыка
+let musicPlaying = false;
+
+// Функция для воспроизведения конкретной музыки
+function playSpecificMusic(musicElement) {
+  // Останавливаем текущую музыку
+  if (currentMusic) {
+    currentMusic.pause();
+    currentMusic.currentTime = 0;
+  }
+  
+  // Устанавливаем новую музыку как текущую
+  currentMusic = musicElement;
+  
+  // Воспроизводим новую музыку
+  musicElement.volume = 0.5; // громкость 50%
+  
+  let playPromise = musicElement.play();
+  
+  if (playPromise !== undefined) {
+    playPromise
+      .then(() => {
+        musicPlaying = true;
+        console.log("Музыка играет:", musicElement.id);
+      })
+      .catch(error => {
+        console.log("Ошибка воспроизведения:", error);
+        musicPlaying = false;
+      });
+  }
+}
+
+// Защита от выключения для текущей музыки
+function setupMusicProtection() {
+  // Убираем предыдущие обработчики
+  musicGame.removeEventListener('pause', musicGamePauseHandler);
+  musicPrize.removeEventListener('pause', musicPrizePauseHandler);
+  musicGame.removeEventListener('ended', musicGameEndedHandler);
+  musicPrize.removeEventListener('ended', musicPrizeEndedHandler);
+  
+  // Добавляем новые обработчики
+  musicGame.addEventListener('pause', musicGamePauseHandler);
+  musicPrize.addEventListener('pause', musicPrizePauseHandler);
+  musicGame.addEventListener('ended', musicGameEndedHandler);
+  musicPrize.addEventListener('ended', musicPrizeEndedHandler);
+}
+
+function musicGamePauseHandler() {
+  setTimeout(() => {
+    if (musicGame.paused && currentMusic === musicGame) {
+      console.log("Музыка игры остановлена, включаем снова");
+      playSpecificMusic(musicGame);
+    }
+  }, 100);
+}
+
+function musicPrizePauseHandler() {
+  setTimeout(() => {
+    if (musicPrize.paused && currentMusic === musicPrize) {
+      console.log("Музыка приза остановлена, включаем снова");
+      playSpecificMusic(musicPrize);
+    }
+  }, 100);
+}
+
+function musicGameEndedHandler() {
+  if (currentMusic === musicGame) {
+    playSpecificMusic(musicGame);
+  }
+}
+
+function musicPrizeEndedHandler() {
+  if (currentMusic === musicPrize) {
+    playSpecificMusic(musicPrize);
+  }
+}
+
+// Настраиваем защиту музыки
+setupMusicProtection();
+
+// Пытаемся включить музыку игры при загрузке страницы
+window.addEventListener('load', function() {
+  playSpecificMusic(musicGame);
+});
+
+// Принудительно включаем при первом взаимодействии
+document.addEventListener('touchstart', function() {
+  if (currentMusic.paused) {
+    playSpecificMusic(currentMusic);
+  }
+}, { once: false });
+
+document.addEventListener('click', function() {
+  if (currentMusic.paused) {
+    playSpecificMusic(currentMusic);
+  }
+});
+
+// Проверка каждые 2 секунды
+setInterval(function() {
+  if (currentMusic.paused) {
+    console.log("Проверка: музыка не играет, пробуем включить");
+    playSpecificMusic(currentMusic);
+  }
+}, 2000);
+
+// Загружаем изображение попрыгунчика
+const doodleImage = new Image();
+doodleImage.src = '1.png'; // Путь к вашему изображению
+
+// Game state
+let gameActive = true;
+let score = 0;
+let gameLoopId = null;
+
+// width and height of each platform and where platforms start
+const platformWidth = 65;
+const platformHeight = 20;
+const platformStart = canvas.height - 50;
+
+// player physics
+const gravity = 0.33;
+const drag = 0.3;
+const bounceVelocity = -12.5;
+
+// minimum and maximum vertical space between each platform
+let minPlatformSpace = 15;
+let maxPlatformSpace = 20;
+
+// information about each platform
+let platforms = [{
+  x: canvas.width / 2 - platformWidth / 2,
+  y: platformStart,
+  type: 'normal'
+}];
+
+// get a random number between the min (inclusive) and max (exclusive)
+function random(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// create platforms
+function createPlatformType(y) {
+  const rand = Math.random();
+  if (rand < 0.7) return 'normal';
+  if (rand < 0.9) return 'moving';
+  return 'fragile';
+}
+
+// fill the initial screen with platforms
+function initializePlatforms() {
+  platforms = [{
+    x: canvas.width / 2 - platformWidth / 2,
+    y: platformStart,
+    type: 'normal'
+  }];
+  
+  let y = platformStart;
+  while (y > 0) {
+    y -= platformHeight + random(minPlatformSpace, maxPlatformSpace);
+    
+    let x;
+    do {
+      x = random(25, canvas.width - 25 - platformWidth);
+    } while (
+      y > canvas.height / 2 &&
+      x > canvas.width / 2 - platformWidth * 1.5 &&
+      x < canvas.width / 2 + platformWidth / 2
+    );
+
+    platforms.push({ 
+      x, 
+      y,
+      type: createPlatformType(y),
+      dx: Math.random() > 0.5 ? 1 : -1,
+      touched: false
+    });
+  }
+}
+
+// the doodle jumper
+const doodle = {
+  width: 40,
+  height: 60,
+  x: canvas.width / 2 - 20,
+  y: platformStart - 60,
+
+  // velocity
+  dx: 0,
+  dy: 0
+};
+
+// keep track of player direction and actions
+let playerDir = 0;
+let keydown = false;
+let prevDoodleY = doodle.y;
+
+function checkVictory() {
+  if (score >= 2000 && gameActive) {
+    gameActive = false;
+    victoryMessage.style.display = 'block';
+    
+    setTimeout(() => {
+      victoryMessage.style.display = 'none';
+      showVictoryMenu();
+    }, 2000);
+  }
+}
+
+function showVictoryMenu() {
+  finalScoreElement.textContent = Math.floor(score);
+  victoryMenu.style.display = 'block';
+}
+
+// Функция: показывает экран с призом и переключает музыку
+function showFinalMessage() {
+  victoryMenu.style.display = 'none'; // скрыть меню победы
+  prizeScreen.style.display = 'flex'; // показать приз
+  
+  // Переключаем музыку с 2.mp3 на 1.mp3
+  playSpecificMusic(musicPrize);
+}
+
+function closePrize() {
+  prizeScreen.style.display = 'none';
+  // Можно оставить музыку приза или вернуть музыку игры
+  // По желанию оставляем музыку приза
+}
+
+// game loop
+function loop() {
+  if (!gameActive) return;
+  
+  gameLoopId = requestAnimationFrame(loop);
+  context.clearRect(0,0,canvas.width,canvas.height);
+
+  // draw background clouds
+  drawClouds();
+  
+  // apply gravity to doodle
+  doodle.dy += gravity;
+
+  // if doodle reaches the middle of the screen, move the platforms down
+  if (doodle.y < canvas.height / 2 && doodle.dy < 0 && gameActive) {
+    platforms.forEach(function(platform) {
+      platform.y += -doodle.dy;
+    });
+
+    // increase score as player goes up
+    if (doodle.dy < 0) {
+      score += Math.floor(-doodle.dy);
+      updateScore();
+      checkVictory();
+    }
+
+    // add more platforms to the top
+    while (platforms[platforms.length - 1].y > 0) {
+      const newY = platforms[platforms.length - 1].y - (platformHeight + random(minPlatformSpace, maxPlatformSpace));
+      platforms.push({
+        x: random(25, canvas.width - 25 - platformWidth),
+        y: newY,
+        type: createPlatformType(newY),
+        dx: Math.random() > 0.5 ? 1 : -1
+      });
+    }
+  }
+  else {
+    doodle.y += doodle.dy;
+  }
+
+  // check for game over (falling off bottom)
+  if (doodle.y > canvas.height && gameActive) {
+    gameOver();
+  }
+
+  // apply horizontal movement
+  if (!keydown) {
+    if (playerDir < 0) {
+      doodle.dx += drag;
+      if (doodle.dx > 0) {
+        doodle.dx = 0;
+        playerDir = 0;
+      }
+    }
+    else if (playerDir > 0) {
+      doodle.dx -= drag;
+      if (doodle.dx < 0) {
+        doodle.dx = 0;
+        playerDir = 0;
+      }
+    }
+  }
+
+  doodle.x += doodle.dx;
+
+  // wrap doodle around screen
+  if (doodle.x + doodle.width < 0) {
+    doodle.x = canvas.width;
+  }
+  else if (doodle.x > canvas.width) {
+    doodle.x = -doodle.width;
+  }
+
+  // draw and update platforms
+  platforms.forEach(function(platform) {
+    // draw platform based on type
+    drawPlatform(platform);
+    
+    // move moving platforms
+    if (platform.type === 'moving') {
+      platform.x += platform.dx;
+      if (platform.x < 25 || platform.x > canvas.width - 25 - platformWidth) {
+        platform.dx *= -1;
+      }
+    }
+
+    // collision detection
+    if (
+      gameActive &&
+      doodle.dy > 0 &&
+      prevDoodleY + doodle.height <= platform.y &&
+      doodle.x < platform.x + platformWidth &&
+      doodle.x + doodle.width > platform.x &&
+      doodle.y < platform.y + platformHeight &&
+      doodle.y + doodle.height > platform.y
+    ) {
+      if (platform.type === 'fragile' && !platform.touched) {
+        platform.touched = true;
+        platform.y += 5; // start falling
+      } else if (platform.type !== 'fragile' || !platform.touched) {
+        doodle.y = platform.y - doodle.height;
+        doodle.dy = bounceVelocity;
+      }
+    }
+
+    // make fragile platforms fall
+    if (platform.type === 'fragile' && platform.touched) {
+      platform.y += 3;
+    }
+  });
+
+  // draw doodle with image
+  drawDoodle();
+
+  prevDoodleY = doodle.y;
+
+  // remove offscreen platforms
+  platforms = platforms.filter(function(platform) {
+    return platform.y < canvas.height;
+  });
+}
+
+function drawPlatform(platform) {
+  // draw platform based on type
+  if (platform.type === 'normal') {
+    context.fillStyle = '#8B4513';
+    context.shadowColor = '#4A2810';
+  } else if (platform.type === 'moving') {
+    context.fillStyle = '#4169E1';
+    context.shadowColor = '#1E3A8A';
+  } else if (platform.type === 'fragile') {
+    context.fillStyle = '#DC143C';
+    context.shadowColor = '#8B0000';
+  }
+
+  context.shadowBlur = 10;
+  context.shadowOffsetY = 5;
+  
+  // draw platform with gradient
+  const gradient = context.createLinearGradient(platform.x, platform.y, platform.x, platform.y + platformHeight);
+  gradient.addColorStop(0, context.fillStyle);
+  gradient.addColorStop(1, context.shadowColor);
+  
+  context.fillStyle = gradient;
+  context.fillRect(platform.x, platform.y, platformWidth, platformHeight);
+  
+  // add shine
+  context.shadowBlur = 0;
+  context.fillStyle = 'rgba(255,255,255,0.3)';
+  context.fillRect(platform.x, platform.y, platformWidth, 5);
+}
+
+function drawDoodle() {
+  if (doodleImage.complete && doodleImage.naturalHeight !== 0) {
+    // Рисуем загруженное изображение
+    context.drawImage(doodleImage, doodle.x, doodle.y, doodle.width, doodle.height);
+  } else {
+    // Если изображение не загрузилось, рисуем запасной вариант
+    context.fillStyle = '#FFD700';
+    context.shadowBlur = 15;
+    context.shadowColor = 'rgba(0,0,0,0.3)';
+    context.shadowOffsetY = 5;
+    context.fillRect(doodle.x, doodle.y, doodle.width, doodle.height);
+    
+    // draw eyes
+    context.shadowBlur = 0;
+    context.fillStyle = 'white';
+    context.fillRect(doodle.x + 8, doodle.y + 10, 8, 8);
+    context.fillRect(doodle.x + 24, doodle.y + 10, 8, 8);
+    
+    context.fillStyle = 'black';
+    context.fillRect(doodle.x + 12, doodle.y + 14, 4, 4);
+    context.fillRect(doodle.x + 28, doodle.y + 14, 4, 4);
+  }
+}
+
+function drawClouds() {
+  context.shadowBlur = 0;
+  context.fillStyle = 'rgba(255,255,255,0.3)';
+  
+  // draw decorative clouds
+  const clouds = [
+    {x: 50, y: 100, w: 60, h: 30},
+    {x: 250, y: 200, w: 80, h: 40},
+    {x: 100, y: 400, w: 70, h: 35},
+    {x: 300, y: 500, w: 90, h: 45}
+  ];
+  
+  clouds.forEach(cloud => {
+    context.beginPath();
+    context.arc(cloud.x, cloud.y, cloud.w/2, 0, Math.PI * 2);
+    context.arc(cloud.x + cloud.w/2, cloud.y - 10, cloud.w/3, 0, Math.PI * 2);
+    context.arc(cloud.x + cloud.w, cloud.y, cloud.w/2, 0, Math.PI * 2);
+    context.fill();
+  });
+}
+
+function updateScore() {
+  scoreElement.textContent = Math.floor(score);
+  
+  // Update progress bar color based on progress
+  const progress = score / 2000;
+  if (progress > 0.75) {
+    scoreElement.style.color = 'gold';
+  } else if (progress > 0.5) {
+    scoreElement.style.color = 'lightgreen';
+  } else if (progress > 0.25) {
+    scoreElement.style.color = 'yellow';
+  }
+}
+
+function gameOver() {
+  gameActive = false;
+  gameOverScoreElement.textContent = Math.floor(score);
+  gameOverMenu.style.display = 'block';
+}
+
+function resetGameState() {
+  score = 0;
+  minPlatformSpace = 15;
+  maxPlatformSpace = 20;
+  
+  updateScore();
+  scoreElement.style.color = 'white';
+  
+  // reset platforms
+  initializePlatforms();
+  
+  // reset doodle
+  doodle.x = canvas.width / 2 - 20;
+  doodle.y = platformStart - 60;
+  doodle.dx = 0;
+  doodle.dy = 0;
+  prevDoodleY = doodle.y;
+  playerDir = 0;
+  keydown = false;
+}
+
+function restartGame() {
+  // hide all menus
+  victoryMenu.style.display = 'none';
+  gameOverMenu.style.display = 'none';
+  victoryMessage.style.display = 'none';
+  prizeScreen.style.display = 'none'; // скрыть приз, если открыт
+  
+  // Переключаем обратно на музыку игры
+  playSpecificMusic(musicGame);
+  
+  // reset everything
+  resetGameState();
+  
+  gameActive = true;
+  requestAnimationFrame(loop);
+}
+
+// listen to keyboard events
+document.addEventListener('keydown', function(e) {
+  if (!gameActive) return;
+  
+  if (e.which === 37) { // left
+    keydown = true;
+    playerDir = -1;
+    doodle.dx = -3;
+  }
+  else if (e.which === 39) { // right
+    keydown = true;
+    playerDir = 1;
+    doodle.dx = 3;
+  }
+});
+
+document.addEventListener('keyup', function(e) {
+  keydown = false;
+});
+
+// initialize game
+initializePlatforms();
+
+// start the game
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

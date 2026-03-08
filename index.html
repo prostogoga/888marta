@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Сюрприз для тебя ❤️</title>
+    <style>
+        :root {
+            --pink-light: #ffe4e1;
+            --pink-main: #ffb6c1;
+            --pink-dark: #ff69b4;
+            --text-color: #5d4037;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--pink-light);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            padding: 20px;
+            border-radius: 25px;
+            box-shadow: 0 10px 25px rgba(255, 105, 180, 0.2);
+            text-align: center;
+        }
+
+        .screen { display: none; flex-direction: column; align-items: center; }
+        .active { display: flex; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        h1 { font-size: 1.4rem; color: var(--pink-dark); margin: 10px 0; }
+        p { font-size: 1rem; line-height: 1.4; margin: 10px 0; }
+
+        button {
+            background: var(--pink-dark);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .help-btn { background: #bbb; font-size: 0.8rem; margin-top: 15px; }
+        
+        /* ИГРА 1: ПЯТНАШКИ */
+        .puzzle-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            width: 240px;
+            height: 240px;
+            margin: 10px auto;
+        }
+        .tile {
+            width: 80px;
+            height: 80px;
+            background-image: url('пятнашки.jpg');
+            background-size: 240px 240px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .tile.empty { background: var(--pink-light); cursor: default; }
+        /* ИГРА 2: ЛОВЛЯ */
+        #game-area {
+            width: 100%;
+            height: 250px;
+            background: #fffafa;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            border: 2px dashed var(--pink-main);
+        }
+        .character {
+            position: absolute;
+            bottom: 5px;
+            width: 60px;
+            height: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+        .falling-heart { position: absolute; font-size: 25px; user-select: none; }
+
+        /* ИГРА 3: КЛИКЕР */
+        .heart-container {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        #heart-clicker {
+            font-size: 60px;
+            cursor: pointer;
+            user-select: none;
+            display: inline-block;
+            transition: transform 0.1s ease-out;
+            padding: 20px;
+        }
+
+        .final-msg { font-size: 0.9rem; text-align: left; white-space: pre-line; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<!-- Скрытый аудио элемент для автовоспроизведения -->
+<audio id="bgMusic" loop style="display: none;">
+    <source src="1.mp3" type="audio/mpeg">
+    Ваш браузер не поддерживает аудио
+</audio>
+
+<div class="container">
+    <!-- Экран 1: Старт -->
+    <div id="s-intro" class="screen active">
+        <h1>Привет, любимая! ❤️</h1>
+        <p>Я подготовил для тебя небольшой сюрприз. Поиграем?</p>
+        <button onclick="nextScreen('s-puzzle'); initPuzzle();">Начать игру</button>
+    </div>
+
+    <!-- Игра 1: Пятнашки -->
+    <div id="s-puzzle" class="screen">
+        <h1>Собери картинку</h1>
+        <div id="puzzle-board" class="puzzle-board"></div>
+        <button class="help-btn" onclick="solvePuzzle()">Не могу пройти (помочь)</button>
+    </div>
+
+    <!-- Переход 1 -->
+    <div id="s-trans1" class="screen">
+        <h1>Ты моя умничка!</h1>
+        <p>ты не даешь нашим отношениям развалиться продолжим</p>
+        <button onclick="nextScreen('s-catch'); startCatchGame();">Продолжим</button>
+    </div>
+
+    <!-- Игра 2: Ловля сердечек -->
+    <div id="s-catch" class="screen">
+        <h1>Слови 20 сердечек</h1>
+        <p>Собрано: <span id="score">0</span> / 20</p>
+        <div id="game-area">
+            <div id="character" class="character">
+                <svg viewBox="0 0 100 120">
+                    <path d="M30 40 Q50 10 70 40" fill="#f9e076"/>
+                    <circle cx="50" cy="45" r="20" fill="#ffe0bd"/>
+                    <circle cx="43" cy="42" r="2" fill="#00bfff"/>
+                    <circle cx="57" cy="42" r="2" fill="#00bfff"/>
+                    <rect x="35" y="65" width="30" height="40" fill="#ff69b4" rx="5"/>
+                    <rect x="25" y="90" width="50" height="15" fill="#8b4513" rx="5"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Переход 2 -->
+    <div id="s-trans2" class="screen">
+        <h1>Мое сердце в твоих руках</h1>
+        <p>я тебя люблю</p>
+        <button onclick="nextScreen('s-click')">Дальше</button>
+    </div>
+
+    <!-- Игра 3: Кликер -->
+    <div id="s-click" class="screen">
+        <h1>Сделай любовь сильнее!</h1>
+        <p>Нажимай на сердце быстро!</p>
+        <div class="heart-container">
+            <div id="heart-clicker">❤️</div>
+        </div>
+        <p>Кликов: <span id="clicks">0</span> / 20</p>
+    </div>
+
+    <!-- Переход 3 -->
+    <div id="s-trans3" class="screen">
+        <h1>Ты чудо!</h1>
+        <p>ты с каждым днем делаешь нашу любовь крепче</p>
+        <button onclick="openFinalFile()">Продолжить</button>
+    </div>
+
+    <!-- Финал -->
+    <div id="s-final" class="screen">
+        <h1>Для тебя... 🌷</h1>
+        <p class="final-msg">
+            Ты мое солнышко я тебя очень люблю, то мой скромненький подарок к 8 марту 
+            
+            как и обещал я не потратил денюшек но и сделал подарок 
+            
+            я тебя очень люблю и хочу любить всю жизнь, чмок
+        </p>
+        <h1 style="font-size: 2.5rem; margin: 0;">💋</h1>
+    </div>
+</div>
+
+<script>
+    // --- ПРИНУДИТЕЛЬНОЕ ВКЛЮЧЕНИЕ МУЗЫКИ ---
+    const audio = document.getElementById('bgMusic');
+    
+    // Функция для воспроизведения музыки
+    function playMusic() {
+        audio.volume = 0.7; // Устанавливаем громкость 70%
+        audio.play()
+            .then(() => {
+                console.log("Музыка играет");
+            })
+            .catch(error => {
+                console.log("Ошибка воспроизведения:", error);
+                // Пытаемся снова через секунду
+                setTimeout(playMusic, 1000);
+            });
+    }
+    
+    // Пытаемся включить музыку при загрузке
+    window.addEventListener('load', function() {
+        playMusic();
+    });
+    
+    // Принудительно включаем при любом касании (для мобильных)
+    document.addEventListener('touchstart', function() {
+        if (audio.paused) {
+            playMusic();
+        }
+    });
+    
+    // Принудительно включаем при клике (для десктопа)
+    document.addEventListener('click', function() {
+        if (audio.paused) {
+            playMusic();
+        }
+    });
+    
+    // Защита от выключения - если музыка остановилась, включаем снова
+    audio.addEventListener('pause', function() {
+        // Небольшая задержка, чтобы избежать конфликтов
+        setTimeout(() => {
+            if (audio.paused) {
+                playMusic();
+            }
+        }, 100);
+    });
+    
+    // Также защита от остановки по окончании (хотя loop должен работать)
+    audio.addEventListener('ended', function() {
+        playMusic();
+    });
+
+    // --- НАВИГАЦИЯ ПО ЭКРАНАМ ---
+    function nextScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    // --- ПЯТНАШКИ ---
+    let tiles = [];
+    function initPuzzle() {
+        tiles = [0, 1, 2, 3, 4, 5, 6, 7, null];
+        for(let i=0; i<20; i++) { // перемешивание
+            const emptyIdx = tiles.indexOf(null);
+            const neighbors = [emptyIdx-1, emptyIdx+1, emptyIdx-3, emptyIdx+3].filter(n => n>=0 && n<9);
+            const rand = neighbors[Math.floor(Math.random()*neighbors.length)];
+            [tiles[emptyIdx], tiles[rand]] = [tiles[rand], tiles[emptyIdx]];
+        }
+        renderPuzzle();
+    }
+
+    function renderPuzzle() {
+        const board = document.getElementById('puzzle-board');
+        board.innerHTML = '';
+        tiles.forEach((tile, idx) => {
+            const div = document.createElement('div');
+            div.className = 'tile' + (tile === null ? ' empty' : '');
+            if (tile !== null) {
+                const r = Math.floor(tile / 3), c = tile % 3;
+                div.style.backgroundPosition = `-${c * 80}px -${r * 80}px`;
+                div.onclick = () => moveTile(idx);
+            }
+            board.appendChild(div);
+        });
+    }
+
+    function moveTile(idx) {
+        const emptyIdx = tiles.indexOf(null);
+        if ([idx-1, idx+1, idx-3, idx+3].includes(emptyIdx)) {
+            [tiles[idx], tiles[emptyIdx]] = [tiles[emptyIdx], tiles[idx]];
+            renderPuzzle();
+            if (tiles.slice(0,8).every((t,i) => t === i)) setTimeout(() => nextScreen('s-trans1'), 500);
+        }
+    }
+
+    function solvePuzzle() {
+        tiles = [0, 1, 2, 3, 4, 5, 6, 7, null];
+        renderPuzzle();
+        setTimeout(() => nextScreen('s-trans1'), 500);
+    }
+
+    // --- ЛОВЛЯ СЕРДЕЧЕК ---
+    let score = 0;
+    let gameActive = false;
+    function startCatchGame() {
+        score = 0; gameActive = true;
+        document.getElementById('score').innerText = '0';
+        const area = document.getElementById('game-area');
+        const char = document.getElementById('character');
+        
+        // Удаляем старые обработчики, чтобы не накапливались
+        const moveHandler = (e) => {
+            if (!gameActive) return;
+            e.preventDefault(); // для touch
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const rect = area.getBoundingClientRect();
+            let x = clientX - rect.left;
+            // Ограничиваем, чтобы персонаж не выходил за границы области
+            const maxLeft = area.clientWidth - 60; // 60 - ширина персонажа
+            x = Math.max(0, Math.min(maxLeft, x));
+            char.style.left = x + 'px';
+        };
+        
+        area.addEventListener('mousemove', moveHandler);
+        area.addEventListener('touchmove', moveHandler, { passive: false });
+        
+        // Очищаем предыдущий интервал, если был
+        if (window.spawnInterval) clearInterval(window.spawnInterval);
+        
+        window.spawnInterval = setInterval(() => {
+            if (!gameActive) {
+                clearInterval(window.spawnInterval);
+                return;
+            }
+            const h = document.createElement('div');
+            h.className = 'falling-heart';
+            h.innerHTML = '❤️';
+            h.style.left = Math.random() * (area.clientWidth - 30) + 'px';
+            h.style.top = '-30px';
+            area.appendChild(h);
+            
+            let top = -30;
+            const fall = setInterval(() => {
+                if (!gameActive) { h.remove(); clearInterval(fall); return; }
+                top += 3; h.style.top = top + 'px';
+                const hRect = h.getBoundingClientRect();
+                const cRect = char.getBoundingClientRect();
+                if (hRect.bottom >= cRect.top && hRect.right >= cRect.left && hRect.left <= cRect.right) {
+                    score++; document.getElementById('score').innerText = score;
+                    h.remove(); clearInterval(fall);
+                    if (score >= 20) { 
+                        gameActive = false; 
+                        clearInterval(window.spawnInterval);
+                        nextScreen('s-trans2'); 
+                    }
+                }
+                if (top > 250) { h.remove(); clearInterval(fall); }
+            }, 20);
+        }, 800);
+    }
+
+    // --- КЛИКЕР ---
+    let clickCount = 0;
+    const heartBtn = document.getElementById('heart-clicker');
+    const clicksSpan = document.getElementById('clicks');
+    
+    function handleHeartClick(e) {
+        if (e) e.preventDefault();
+        clickCount++;
+        clicksSpan.innerText = clickCount;
+        
+        // Увеличиваем размер
+        const scale = 1 + (clickCount * 0.1);
+        heartBtn.style.transform = `scale(${scale})`;
+
+        if (clickCount >= 20) {
+            heartBtn.onclick = null;
+            heartBtn.ontouchstart = null;
+            setTimeout(() => nextScreen('s-trans3'), 300);
+        }
+    }
+
+    heartBtn.onclick = handleHeartClick;
+    heartBtn.ontouchstart = handleHeartClick;
+
+    // --- ОТКРЫТИЕ ФИНАЛЬНОГО ФАЙЛА ---
+    function openFinalFile() {
+        window.location.href = '1.html';
+    }
+</script>
+</body>
+</html>
